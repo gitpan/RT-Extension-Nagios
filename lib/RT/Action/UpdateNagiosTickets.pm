@@ -26,9 +26,10 @@ sub Commit {
     return unless $subject;
     if ( my ( $type, $category, $host, $problem_type, $problem_severity ) =
         $subject =~
-        m{(PROBLEM|RECOVERY)\s+(Service|Host) Alert: ([^/]+)/(.*)\s+is\s+(\w+)}i
+m{(PROBLEM|RECOVERY|ACKNOWLEDGEMENT)\s+(Service|Host) Alert: ([^/]+)/?(.*)\s+is\s+(\w+)}i
       )
     {
+        $problem_type ||= '';
         $RT::Logger->info(
 "Extracted type, category, host, problem_type and problem_severity from
 subject with values $type, $category, $host, $problem_type and $problem_severity"
@@ -37,7 +38,8 @@ subject with values $type, $category, $host, $problem_type and $problem_severity
         $tickets->LimitQueue( VALUE => $new_ticket->Queue )
           unless RT->Config->Get('NagiosSearchAllQueues');
         $tickets->LimitSubject(
-            VALUE    => "$category Alert: $host/$problem_type",
+            VALUE => "$category Alert: $host"
+              . ( $problem_type ? "/$problem_type" : '' ),
             OPERATOR => 'LIKE',
         );
         $tickets->LimitStatus(
@@ -82,7 +84,7 @@ subject with values $type, $category, $host, $problem_type and $problem_severity
                         'failed to comment ticket ' . $ticket->id . ": $msg" );
                 }
 
-                my ( $ret, $msg ) = $ticket->Resolve();
+                ( $ret, $msg ) = $ticket->Resolve();
                 if ( !$ret ) {
                     $RT::Logger->error(
                         'failed to resolve ticket ' . $ticket->id . ": $msg" );
