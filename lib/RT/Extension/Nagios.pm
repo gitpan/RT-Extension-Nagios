@@ -9,7 +9,7 @@ RT::Extension::Nagios - Merge and resolve Nagios tickets
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 1;
 
@@ -59,6 +59,11 @@ in etc/RT_SiteConfig.pm like this:
 
     Set($NagiosSearchAllQueues, 1); # true
     Set($NagiosMergeTickets, 0); # false
+
+by default, tickets will be resolved with status C<resolved>, you can
+customize this via config item C<NagiosResolvedStatus>, e.g.
+
+    Set($NagiosResolvedStatus, "recovered");
 
 =head1 AUTHOR
 
