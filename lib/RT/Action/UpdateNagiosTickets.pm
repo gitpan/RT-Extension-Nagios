@@ -37,9 +37,10 @@ subject with values $type, $category, $host, $problem_type and $problem_severity
         my $tickets = RT::Tickets->new( $self->CurrentUser );
         $tickets->LimitQueue( VALUE => $new_ticket->Queue )
           unless RT->Config->Get('NagiosSearchAllQueues');
+        my $subject = "$category Alert: $host"
+              . ( $problem_type ? "/$problem_type" : '' );
         $tickets->LimitSubject(
-            VALUE => "$category Alert: $host"
-              . ( $problem_type ? "/$problem_type" : '' ),
+            VALUE => $subject,
             OPERATOR => 'LIKE',
         );
         my @active = RT::Queue->ActiveStatusArray();
@@ -72,7 +73,11 @@ subject with values $type, $category, $host, $problem_type and $problem_severity
                 }
             }
 
-            if ( $type eq 'RECOVERY' ) {
+            if ( uc $type eq 'RECOVERY' ) {
+                if ( not $merged_ticket or not $merged_ticket->id ) {
+                    $RT::Logger->error( 'Recovery ticket with no initial ticket: $subject' );
+                    $merged_ticket = $new_ticket;
+                }
                 my ( $ret, $msg ) = $merged_ticket->SetStatus($resolved);
                 if ( !$ret ) {
                     $RT::Logger->error( 'failed to resolve ticket '
@@ -81,7 +86,7 @@ subject with values $type, $category, $host, $problem_type and $problem_severity
                 }
             }
         }
-        elsif ( $type eq 'RECOVERY' ) {
+        elsif ( uc $type eq 'RECOVERY' ) {
             while ( my $ticket = $tickets->Next ) {
                 my ( $ret, $msg ) = $ticket->Comment(
                     Content => 'going to be resolved by ' . $new_ticket_id,
